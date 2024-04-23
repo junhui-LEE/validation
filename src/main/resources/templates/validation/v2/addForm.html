@@ -23,22 +23,26 @@
     </div>
 
     <form action="item.html" th:action th:object="${item}" method="post">
-        <div th:if="${errors?.containsKey('globalError')}">
-<!--            <p class="field-error" th:text="${errors.get('globalError')}">전체 오류 메시지</p>-->
-            <p class="field-error" th:text="${errors['globalError']}">전체 오류 메시지</p>
+        <!--
+        스프링이 만들어준 에러에 접근하려면, bindingResult에 접근하려면, 검증 결과 오류에 접근하려면 쓰는 문법이 있다.
+        #fields 이렇게 하고 물음표 같은것 안쓰고 hasGlobalErrors()를 써주면 된다. 글로벌 오류가 있냐? 라는 말이다.
+        -->
+        <div th:if="${#fields.hasGlobalErrors()}">
+            <p class="field-error"
+               th:each="err : ${#fields.globalErrors()}"
+               th:text="${err}">
+                글로벌 오류 메시지
+            </p>
+            <!--
+            글로벌 오류는 한개일 수도 있지만 여러개 일 수도 있다.
+            그때는 th:each="err : ${#fields.globalErrors()}" 이렇게 해주면 된다.
+            golbalErrors()가 컬랙션이다.
+            -->
         </div>
 
         <div>
+            <!--
             <label for="itemName" th:text="#{label.item.itemName}">상품명</label>
-<!--            <input-->
-<!--                    type="text"-->
-<!--                    id="itemName"-->
-<!--                    th:field="*{itemName}"-->
-<!--                    th:class="${errors?.containsKey('itemName')} ? 'form-control field-error' : 'form-control'"-->
-<!--                    class="form-control"-->
-<!--                    placeholder="이름을 입력하세요">-->
-
-            <!-- th:classappend를 이용해서 구현할 수도 있다. -->
             <input
                     type="text"
                     id="itemName"
@@ -52,20 +56,54 @@
                     th:text="${errors['itemName']}">
                 상품명 오류
             </div>
+            <div
+                    class="field-error"
+                    th:if="${errors?.containsKey('itemName')}"
+                    th:text="${errors['itemName']}">
+                상품명 오류
+            </div>
+            -->
+            <label for="itemName" th:text="#{label.item.itemName}">상품명</label>
+            <input
+                    type="text"
+                    id="itemName"
+                    th:field="*{itemName}"
+                    th:errorclass="field-error"
+                    class="form-control"
+                    placeholder="이름을 입력하세요">
+            <!--
+                th:classappend="${errors?.containsKey('itemName')} ? 'field-error' : _" 을 줄여서
+                th:errorclass="field-error" 이렇게 쓸 수 있다. 어떻게 필드 명이 itemName인지 알 수 있냐면
+                th:field="*{itemName}"가 있기 때문에 th:errorclass는 itemName에 대한 오류가 있으면 기존에
+                있던 class="form-control"에 "field-error"을 추가해 준다.
+            -->
+            <div
+                    class="field-error"
+                    th:errors="*{itemName}">
+                상품명 오류
+            </div>
+            <!--
+                th:if="${errors?.containsKey('itemName')}" th:text="${errors['itemName']}" 이렇게 itemName가 중복되는데
+                뭔가 이런 로직을 효율적으로 만들 수 있겠다. 그래서 타임리프가 기가 막히게 th:errors라는 것을 제공한다. 에러가 있으면
+                <div>를 출력하고 없으면 출력하지 않는다. 그런것을 전부 다 처리해 준다. FieldError의 필드 이름이 itemName으로 맞춰져
+                있기 때문에 이렇게 th:errors="*{itemName}" 바로 쓸 수 있다.
+
+                bindingResult.addError(new FieldError("item", "itemName", "상품 이름은 필수 입니다."));
+            -->
         </div>
+
         <div>
             <label for="price" th:text="#{label.item.price}">가격</label>
             <input
                     type="text"
                     id="price"
                     th:field="*{price}"
-                    th:class="${errors?.containsKey('price')} ? 'field-error form-control' : 'form-control'"
+                    th:errorclass="field-error"
                     class="form-control"
                     placeholder="가격을 입력하세요">
             <div
                     class="field-error"
-                    th:if="${errors?.containsKey('price')}"
-                    th:text="${errors['price']}">
+                    th:errors="*{price}">
                 가격 오류
             </div>
         </div>
@@ -75,13 +113,11 @@
                     type="text"
                     id="quantity"
                     th:field="*{quantity}"
-                    th:class="${errors?.containsKey('quantity')} ? 'field-error form-control' : 'form-control'"
+                    th:errorclass="field-error"
                     class="form-control"
                     placeholder="수량을 입력하세요">
             <div
-                    class="field-error"
-                    th:if="${errors?.containsKey('quantity')}"
-                    th:text="${errors['quantity']}">
+                    class="field-error" th:errors="*{quantity}">
                 수량 오류
             </div>
         </div>
