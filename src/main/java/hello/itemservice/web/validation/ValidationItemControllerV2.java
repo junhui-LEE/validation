@@ -46,7 +46,7 @@ public class ValidationItemControllerV2 {
         return "validation/v2/addForm";
     }
 
-    @PostMapping("/add")
+//    @PostMapping("/add")
     public String addItemV1(@ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
         /*
         * item에 바인딩 된 결과가 BindingResult bindingResult에 담기는 것이다. 잘 담길 수도 있지만 잘 안담겨서 오류가 생길 수도 있다.
@@ -89,6 +89,98 @@ public class ValidationItemControllerV2 {
             * 당연하겠다. 스프링에 바인딩 오류 관련 매커니즘이 있다는 것은 화면에서 쓰겠다는
             * 것이기 때문에 굳이 모델에 안담아도 스프링이 그런 것 까지 전부 다 해준다.
             * */
+            return "validation/v2/addForm";
+        }
+
+        // 성공 로직
+        Item savedItem = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", savedItem.getId());
+        redirectAttributes.addAttribute("status", true);
+        return "redirect:/validation/v2/items/{itemId}";
+    }
+
+    @PostMapping("/add")
+    public String addItemV2(@ModelAttribute Item item,
+                            BindingResult bindingResult,
+                            RedirectAttributes redirectAttributes,
+                            Model model) {
+        // 검증 로직
+        if(!StringUtils.hasText(item.getItemName())){
+//            bindingResult.addError(new FieldError("item", "itemName", "상품 이름은 필수 입니다."));
+            bindingResult.addError(new FieldError(
+                    "item",
+                    "itemName",
+                    item.getItemName(),
+                    false,
+                    null,
+                    null,
+                    "상품 이름은 필수 입니다."));
+            /*
+            * new FieldError()의 두번째 생성자를 살펴보자
+            *
+            * 세번쨰 인자 : item.getItemName()을 써 줬는데, 데이터타입이 @Nullable Object rejectValue이다.
+            *           거절된 값, 즉, 사용자가 잘못 입력한 값을 써주는 것이다.
+            * 네번쨰 인자 : false을 써 줬는데, 이것은 boolean bindingFailure이다.바인딩에 실패 했는지를 설정하는 것이다.
+            *           예를들면 item에 있는 private Integer price; 여기에 데이터 들어가는 것(넘어오는것)이 실패했는지
+            *           설정하는 것이다. 타입오류(가격 : qqqq) 이렇게 입력하면 private Integer price;에 들어가지를 않는다.
+            *           데이터는 (가격 : 10) 이렇게 잘 넘어갔기 때문에 false로 했다.
+            * 다선번째 인자 & 여섯번째 인자 :
+            *           다섯번째 인자는 @Nullable String[] codes를 넣어주는 곳인데 null을 써 줬다. 여섯번째 인자는
+            *           @Nullable Object[] arguments를 넣어주는 곳인데 null을 써줬다. 이것들(codes, arguments)은
+            *           메시지화 해서 defaultMessage를 대체할 수 있는데, 뒤에서 설명하겠다.
+            * 일곱번째 인자: @Nullable String defaultMessage를 넣어주는 곳인데 "상품 이름은 필수 입니다."를 넣어 주었다.
+            * */
+
+        }
+        if(item.getPrice() == null || item.getPrice() < 1000 || item.getPrice() > 1000000){
+//            bindingResult.addError(new FieldError("item", "price", "가격은 1,000 ~ 1,000,000 까지 허용합니다."));
+            bindingResult.addError(new FieldError(
+                    "item",
+                    "price", item.getPrice(),
+                    false,
+                    null,
+                    null,
+                    "가격은 1,000 ~ 1,000,000 까지 허용합니다." ));
+
+        }
+        if(item.getQuantity() == null || item.getQuantity() >= 9999){
+//            bindingResult.addError(new FieldError("item", "quantity", "수량은 최대 9,999 까지 허용합니다."));
+            bindingResult.addError(new FieldError(
+                    "item",
+                    "quantity",
+                    item.getQuantity(),
+                    false,
+                    null,
+                    null,
+                    "수량은 최대 9,999 까지 허용합니다."));
+        }
+
+        // 특정 필드가 아닌 복합 룰 검증 - 가격*수량 은 10000 이상 이라는 요구사항
+        if(item.getPrice() != null && item.getQuantity() != null){
+            int resultPrice = item.getPrice()*item.getQuantity();
+            if(resultPrice < 10000){
+//                bindingResult.addError(new ObjectError("item", "가격 * 수량의 합은 10,000원 이상이어야 합니다. 현재 값 = "+resultPrice));
+                bindingResult.addError(new ObjectError(
+                        "item",
+                        null,
+                        null,
+                        "가격 * 수량의 합은 10,000원 이상이어야 합니다. 현재 값 = "+resultPrice));
+                /*
+                * 특정 필드의 오류가 아니라 복합적인 룰에 어긋나서 에러를 bindingResult에 넣어야 하는 경우, 글로벌 오류일 경우
+                * new ObjectError()을 bindingResult에 넣는데, ObjectError의 두번째 생성자를 살펴보자
+                *
+                * 두번째 인자 & 세번째 인자: @Nullable String[] codes와 @Nullable String[] arguments인데
+                *        ObjectError은 필드로 데이터 넘어오는 것이 없다. 그래서 둘다 null을 써줬다. 이것들(codes, arguments)은
+                *        메시지화 해서 defaultMessage를 대체할 수 있는데, 뒤에서 설명하겠다.
+                * 네번째 인자: @Nullable String defaultMessage를 넣어주는 곳인데 "가격 * 수량의 합은 10,000원 이상이어야 합니다.
+                *        현재 값 = "+resultPrice를 넣어 주었다.
+                * */
+            }
+        }
+
+        // 검증에 실패하면 다시 입력 폼으로 보내는 로직
+        if(bindingResult.hasErrors()){
+            log.info("errors = {}", bindingResult);
             return "validation/v2/addForm";
         }
 
