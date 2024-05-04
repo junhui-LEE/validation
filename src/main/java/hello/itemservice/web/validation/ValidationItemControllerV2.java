@@ -191,11 +191,14 @@ public class ValidationItemControllerV2 {
         return "redirect:/validation/v2/items/{itemId}";
     }
 
-    @PostMapping("/add")
+//    @PostMapping("/add")
     public String addItemV3(@ModelAttribute Item item,
                             BindingResult bindingResult,
                             RedirectAttributes redirectAttributes,
                             Model model) {
+
+        log.info("objectName={}", bindingResult.getObjectName());
+        log.info("target={}", bindingResult.getTarget());
 
         // 검증 로직
         if(!StringUtils.hasText(item.getItemName())){
@@ -263,7 +266,107 @@ public class ValidationItemControllerV2 {
         return "redirect:/validation/v2/items/{itemId}";
     }
 
+    @PostMapping("/add")
+    public String addItemV4(@ModelAttribute Item item,
+                            BindingResult bindingResult,
+                            RedirectAttributes redirectAttributes,
+                            Model model) {
 
+        log.info("objectName={}", bindingResult.getObjectName());
+        log.info("target={}", bindingResult.getTarget());
+        /*
+        * 컨트롤러에서 BindingResult는 검증해야 할 객체인 target바로 다음에 온다. 여기에는 어떤의미가 내포되어 있냐면
+        * BindingResult는 이미 본인이 검증해야할 객체인 target을 알고 있다. FieldError에서 바인딩 되는 객체 이름(item)을
+        * 사실은 넣어줄 필요 없다. 생략할 수 있다. 왜냐하면 bindingResult는 target을 이미 알고 있기 때문이다.
+        *
+        * BindingResult가 제공하는 rejectValue(), reject()를 사용하면 FieldError, ObjectError를 직접 생성하지 않고
+        * 깔끔하게 검증오류를 다룰 수 있다.
+        * */
+        // 검증 로직
+        if(!StringUtils.hasText(item.getItemName())){
+//            bindingResult.addError(new FieldError(
+//                    "item",
+//                    "itemName",
+//                    item.getItemName(),
+//                    false,
+//                    new String[]{"required.item.itemName"},
+//                    null,
+//                    "상품 이름은 필수 입니다."));
+            bindingResult.rejectValue("itemName", "required");
+            /*
+            * rejectValue의 첫번째 파라미터 : 필드이름을 써준다.
+            * rejectValue의 두번째 파라미터 : 에러코드를 써준다.
+            *
+            * bindingResult.rejectValue("itemName", "required");이렇게만 써줘도 bindingResult는 item을 이미 알고 있고
+            * itemName도 rejectValue()에 써줬기 때문에 알고 있다. 따라서 required만 써줘도 required.item.itemName을 찾는다.
+            * => 규칙이 있다. => 에러코드.오브젝트명.필드명
+            * */
+
+        }
+
+        if(item.getPrice() == null || item.getPrice() < 1000 || item.getPrice() > 1000000){
+//            bindingResult.addError(new FieldError(
+//                    "item",
+//                    "price", item.getPrice(),
+//                    false,
+//                    new String[]{"range.item.price"},
+//                    new Object[]{1000, 1000000},
+//                    "가격은 1,000 ~ 1,000,000 까지 허용합니다." ));
+            bindingResult.rejectValue("price", "range", new Object[]{1000, 1000000}, null);
+            /*
+            * 첫번째 인자: 필드이름 써준다.
+            * 두번째 인자: 에러코드 써준다.
+            * 세번재 인자: errors.properties의 에러코드(key-value 한쌍)가 인덱스를 참조해서
+            *       defaultMessage를 만드는데 이때에 그 인덱스를 담고 있는 Object배열
+            * 네번째 인자: defaultMessage를 써준다. 나는 null로 써줬다.
+            * */
+
+        }
+
+        if(item.getQuantity() == null || item.getQuantity() >= 9999){
+//            bindingResult.addError(new FieldError(
+//                    "item",
+//                    "quantity",
+//                    item.getQuantity(),
+//                    false,
+//                    new String[]{"max.item.quantity"},
+//                    new Object[]{9999},
+//                    "수량은 최대 9,999 까지 허용합니다."));
+            bindingResult.rejectValue("quantity", "max", new Object[]{9999}, null);
+
+        }
+
+        if(item.getPrice() != null && item.getQuantity() != null){
+            int resultPrice = item.getPrice()*item.getQuantity();
+            if(resultPrice < 10000){
+//                bindingResult.addError(new ObjectError(
+//                        "item",
+//                        new String[]{"totalPriceMin"},
+//                        new Object[]{10000, resultPrice},
+//                        "가격 * 수량의 합은 10,000원 이상이어야 합니다. 현재 값 = "+resultPrice));
+                bindingResult.reject("totalPriceMin", new Object[]{10000, resultPrice}, null);
+                /*
+                * 특정 필드오류가 아니라 복합적인 룰을 벗어나서 생기는 오류일 경우에는 bindingResult.reject()를 통해서
+                * bindingResult에 에러는 넣을 수 있다.
+                *
+                * 첫번쨰 인자 : 에러코드를 넣는다.
+                * 두번쨰 인자 : errors.properties에 있는 key-value가 참조할 배열을 넣는다.
+                * 세번째 인자 : defaultMessage를 넣는다. 나는 null을 넣었다.
+                * */
+            }
+        }
+
+        if(bindingResult.hasErrors()){
+            log.info("errors = {}", bindingResult);
+            return "validation/v2/addForm";
+        }
+
+        // 성공 로직
+        Item savedItem = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", savedItem.getId());
+        redirectAttributes.addAttribute("status", true);
+        return "redirect:/validation/v2/items/{itemId}";
+    }
 
     @GetMapping("/{itemId}/edit")
     public String editForm(@PathVariable Long itemId, Model model) {
