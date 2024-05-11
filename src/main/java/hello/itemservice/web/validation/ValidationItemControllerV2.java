@@ -271,6 +271,20 @@ public class ValidationItemControllerV2 {
 
         log.info("objectName={}", bindingResult.getObjectName());
         log.info("target={}", bindingResult.getTarget());
+//        - 오류 코드와 메시지 처리6 -
+//      스프링이 만들어준 에러코드를 MessageCodesResolver에 넣음으로서 만들어진 메시지 코드에
+//      대한 값을 errors.properties에 추가해 줌으로서 price에 대한 타입오류가 발생할 시에
+//      나오는 에러 메시지를 우리가 설정한 "숫자를 입력해주세요."로 나오게끔 개발 하였다. 하지만
+//      사용자가 A를 price에 입력할 시에 검증로직에 있는 item.getPrice() == null에 걸리기 때문에
+//      price를 검증하는 검증로직에서 발생하는 에러 메시지("가격은 1,000 ~ 1,000,000 까지 허용합니다.") 또한
+//      출력되는 것을 확인할 수 있다. 내가 만일 둘줄 하나의 에러 메시지만을 보여주게끔 개발하고 싶다면 그 중에서
+//      "숫자를 입력해주세요"만을 보여주게끔 처리하고 싶다면 아래와 같은 코드를 추가해 주면 된다.
+//      이런식으로 개발이 가능하다.
+//        if(bindingResult.hasErrors()){
+//            log.info("errors = {}", bindingResult);
+//            return "validation/v2/addForm";
+//        }
+
         /*
         * 컨트롤러에서 BindingResult는 검증해야 할 객체인 target바로 다음에 온다. 여기에는 어떤의미가 내포되어 있냐면
         * BindingResult는 이미 본인이 검증해야할 객체인 target을 알고 있다. FieldError에서 바인딩 되는 객체 이름(item)을
