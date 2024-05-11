@@ -7,10 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.Errors;
-import org.springframework.validation.FieldError;
-import org.springframework.validation.ObjectError;
+import org.springframework.validation.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -283,26 +280,31 @@ public class ValidationItemControllerV2 {
         * 깔끔하게 검증오류를 다룰 수 있다.
         * */
         // 검증 로직
-        if(!StringUtils.hasText(item.getItemName())){
-//            bindingResult.addError(new FieldError(
-//                    "item",
-//                    "itemName",
-//                    item.getItemName(),
-//                    false,
-//                    new String[]{"required.item.itemName"},
-//                    null,
-//                    "상품 이름은 필수 입니다."));
-            bindingResult.rejectValue("itemName", "required");
-            /*
-            * rejectValue의 첫번째 파라미터 : 필드이름을 써준다.
-            * rejectValue의 두번째 파라미터 : 에러코드를 써준다.
-            *
-            * bindingResult.rejectValue("itemName", "required");이렇게만 써줘도 bindingResult는 item을 이미 알고 있고
-            * itemName도 rejectValue()에 써줬기 때문에 알고 있다. 따라서 required만 써줘도 required.item.itemName을 찾는다.
-            * => 규칙이 있다. => 에러코드.오브젝트명.필드명
-            * */
-
-        }
+//        if(!StringUtils.hasText(item.getItemName())){
+////            bindingResult.addError(new FieldError(
+////                    "item",
+////                    "itemName",
+////                    item.getItemName(),
+////                    false,
+////                    new String[]{"required.item.itemName"},
+////                    null,
+////                    "상품 이름은 필수 입니다."));
+//            bindingResult.rejectValue("itemName", "required");
+//            /*
+//            * rejectValue의 첫번째 파라미터 : 필드이름을 써준다.
+//            * rejectValue의 두번째 파라미터 : 에러코드를 써준다.
+//            *
+//            * bindingResult.rejectValue("itemName", "required");이렇게만 써줘도 bindingResult는 item을 이미 알고 있고
+//            * itemName도 rejectValue()에 써줬기 때문에 알고 있다. 따라서 required만 써줘도 required.item.itemName을 찾는다.
+//            * => 규칙이 있다. => 에러코드.오브젝트명.필드명
+//            * */
+//
+//        }
+//        - ValidationUtils -
+//        이것은 옵션으로 강사님께서 넣어주신 것인데 스프링을 공부하다 보면 ValidationUtils를 볼 수 있다. 이러한 유틸리티 클래스가
+//        있다는 정도로 알면 된다. 바로 위의 itemName에 대한 검증을 하는 로직과 아래의 ValidationUtils를 이용해서 만들어진
+//        한줄의 코드는 똑같은 역할을 한다.
+        ValidationUtils.rejectIfEmptyOrWhitespace(bindingResult, "itemName", "required");
 
         if(item.getPrice() == null || item.getPrice() < 1000 || item.getPrice() > 1000000){
 //            bindingResult.addError(new FieldError(
