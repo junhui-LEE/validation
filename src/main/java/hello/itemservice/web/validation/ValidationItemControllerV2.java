@@ -8,6 +8,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.*;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -23,6 +25,53 @@ public class ValidationItemControllerV2 {
 
     private final ItemRepository itemRepository;
     private final ItemValidator itemValidator;
+
+/*
+- Validator 분리2 -
+지금 우리는 ItemValidator이라는 클래스를 만들었고 그 클래스에서 검증로직을 담당하게 함으로서 addItemV5()에서
+검증로직을 분리 시킬 수 있었다. 그리고 ItemValidator은 스프링이 제공하는 Validator인터페이스를 구현한다.
+스프링이 Validator인터페이스를 별도로 제공하는 이유는 체계적으로 검증 기능을 도입하기 위해서이다.
+그런데 앞에서는 검증기(ItemValidator)를 컴포넌트스캔을 이용해서 직접 불러서 사용했고, 이렇게 사용해도 된다.
+그런데 사실 이렇게 사용하면 굳이 ItemValidator가 스프링이 제공하는 Validator인터페이스를 구현하지 않아도 된다.
+ItemValidator은 그냥 addItemV5에서 쓰이는 검증로직을 담아두는 것 뿐이기 때문이다. 그런데 스프링이 제공하는
+Validator인터페이스를 사용해서 검증기(ItemValidator)을 만들면 스프링의 추가적인 도움을 받을 수 있다.
+스프링이 제공하는 Validator을 사용함으로서 어떠한 추가적인 도움을 받는지를 알기 위해서는 WebDataBinder을
+알아야 하는데 너무 깊이 있게 알 필요는 없다.
+
+WebDataBinder은 컨트롤러의 매핑되는 메서드(addItemV5(Item item))의 item객체에 파라미터를 바인딩하는 것을 도와주고
+item객체에 파라미터를 바인딩 하기 전에 WebDataBinder가 검증기를 이용해서 검증도 해 준다. WebDataBinder은 SpringMVC에서
+내부적으로 사용하는 기능인데 이러한 WebDataBinder을 밖으로 꺼내서 그 안에 검증기를 넣어줘야 WebDataBinder가 검증기를 적용해서
+파라미터를 바인딩하기 전에 파라미터에 대한 검증을 하고 item객체에 파라미터를 바인딩도 해준다.
+요약 : WebDataBinder는 스프링의 파라미터 바인딩의 역할을 해주고 검증 기능도 내부에 포함한다.
+
+그럼 WebDataBinder을 밖으로 꺼내고 꺼내진 WebDataBinder에 검증기(ItemValidator)을 적용시키려면 어떻게 해야 할까?
+아래의 코드와 같이 써주면 된다.
+@InitBinder
+public void init(WebDataBinder dataBinder){
+    log.info("init binder {}", dataBinder);
+    dataBinder.addValidators(itemValidator);
+}
+그럼 이제부터 위의 코드에 대해서 하나하나 알아보자. @InitBinder는 언제 호출이 되냐면 컨트롤러가 호출될 때마다
+호출이 된다. 우리는 @InitBinder 아래에 init()을 개발했기 때문에 init()메서드가 컨트롤러가 호출(요청)될때마다 init()메서드가
+실행이 된다. 그리고 자세히 보면 init()메서드의 인자로 WebDatabinder dataBinder가 있는것을 확인할 수 있다. WebDataBinder은
+컨트롤러에 호출이 올때마다, 컨트롤러에 요청이 올때마다 새로 생성이 되는데, 그 새로 생성이 된 WebDataBinder가 init()메서드의
+인자로 들어가게 되는 것이다. 그렇게 들어가게끔 스프링이 해준다. 다시말하자면 개발자가 @InitBinder아래에 init()메서드를 개발해
+놓았기 때문에 컨트롤러 호출이 있을때 마다 init()메서드가 실행이 되고 그리고 컨트롤러 요청(호출)이 있을때 마다 WebDataBinder가
+새로 생기는데, 그 새로 생긴 WebDataBinder가 init()메서드의 인자로 들어가는 것이다.  그렇다. 이러한 방식으로 WebDataBinder을
+밖으로 꺼냈다. 그럼 꺼낸 WebDataBinder에 검증기(ItemValidator)을 추가해 줘야 하는데, 그 방법은
+data.addValidator(itemValidator); 이렇게 해주는 것이다.
+
+이렇게 해주면 itemValidator가 적용된 WebDataBinder을 이용해서 ValidationItemControllerV2의 어떤 요청이건 간에
+WebDataBinder 안의 검증기를 통해 검증 후 바인딩을 할 수 있는 것이다.
+
+이렇게 WebDataBinder에 검증기를 추가하면 해당 컨트롤러에서는 검증기를 자동으로 적용할 수 있다.
+@InitBinder => 해당 컨트롤러에만 영향을 준다. 글로벌 설정은 별도로 해야한다.
+*/
+    @InitBinder
+    public void init(WebDataBinder dataBinder){
+        log.info("init binder {}", dataBinder);
+        dataBinder.addValidators(itemValidator);
+    }
 
     @GetMapping
     public String items(Model model) {
@@ -385,7 +434,7 @@ public class ValidationItemControllerV2 {
         return "redirect:/validation/v2/items/{itemId}";
     }
 
-    @PostMapping("/add")
+//    @PostMapping("/add")
     public String addItemV5(@ModelAttribute Item item,
                             BindingResult bindingResult,
                             RedirectAttributes redirectAttributes,
@@ -412,6 +461,27 @@ public class ValidationItemControllerV2 {
             }
         }
         */
+        if(bindingResult.hasErrors()){
+            log.info("errors = {}", bindingResult);
+            return "validation/v2/addForm";
+        }
+
+        // 성공 로직
+        Item savedItem = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", savedItem.getId());
+        redirectAttributes.addAttribute("status", true);
+        return "redirect:/validation/v2/items/{itemId}";
+    }
+
+    @PostMapping("/add")
+    public String addItemV6(@Validated @ModelAttribute Item item,
+                            BindingResult bindingResult,
+                            RedirectAttributes redirectAttributes,
+                            Model model) {
+
+        log.info("objectName={}", bindingResult.getObjectName());
+        log.info("target={}", bindingResult.getTarget());
+
         if(bindingResult.hasErrors()){
             log.info("errors = {}", bindingResult);
             return "validation/v2/addForm";
