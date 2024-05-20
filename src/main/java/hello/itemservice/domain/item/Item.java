@@ -12,6 +12,8 @@ public class Item {
 
     private Long id;
 
+//    @NotBlank(message = "공백X")
+//    @NotBlank(message = "공백X {0}")
     @NotBlank
     private String itemName;
 
