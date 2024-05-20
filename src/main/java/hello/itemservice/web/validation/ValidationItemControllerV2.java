@@ -67,11 +67,11 @@ WebDataBinder 안의 검증기를 통해 검증 후 바인딩을 할 수 있는 
 이렇게 WebDataBinder에 검증기를 추가하면 해당 컨트롤러에서는 검증기를 자동으로 적용할 수 있다.
 @InitBinder => 해당 컨트롤러에만 영향을 준다. 글로벌 설정은 별도로 해야한다.
 */
-    @InitBinder
-    public void init(WebDataBinder dataBinder){
-        log.info("init binder {}", dataBinder);
-        dataBinder.addValidators(itemValidator);
-    }
+//    @InitBinder
+//    public void init(WebDataBinder dataBinder){
+//        log.info("init binder {}", dataBinder);
+//        dataBinder.addValidators(itemValidator);
+//    }
 
     @GetMapping
     public String items(Model model) {
